@@ -33,6 +33,23 @@ class AddNewEntryViewController: UIViewController {
     //
     // MARK: - Private Methods
     //
+    
+    func fillTextFields() {
+      nameTextField.text = specimen.name
+      categoryTextField.text = specimen.category.name
+      descriptionTextField.text = specimen.specimenDescription
+      selectedCategory = specimen.category
+    }
+    
+    func updateSpecimen() {
+      let realm = try! Realm()
+        
+      try! realm.write {
+        specimen.name = nameTextField.text!
+        specimen.category = selectedCategory
+        specimen.specimenDescription = descriptionTextField.text
+      }
+    }
 
     func addNewSpecimen() {
       let realm = try! Realm() // start instance
@@ -56,7 +73,12 @@ class AddNewEntryViewController: UIViewController {
       sender: Any?
       ) -> Bool {
         if validateFields() {
-          addNewSpecimen()
+          if specimen != nil {
+            updateSpecimen()
+          } else {
+            addNewSpecimen()
+          }
+
           // check validation
           return true
         } else {
@@ -100,6 +122,15 @@ class AddNewEntryViewController: UIViewController {
   //
   override func viewDidLoad() {
     super.viewDidLoad()
+    
+    if let specimen = specimen {
+      title = "Edit \(specimen.name)"
+          
+      fillTextFields()
+    } else {
+      title = "Add New Specimen"
+    }
+
   }
 }
 

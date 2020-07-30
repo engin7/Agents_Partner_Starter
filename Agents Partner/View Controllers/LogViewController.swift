@@ -42,7 +42,27 @@ class LogViewController: UITableViewController {
 
     
   }
-  
+    
+ //You’ll pass the selected specimen to the AddNewEntryController instance. The complication with the if/else is because getting the selected specimen is different depending on whether or not the user is looking at search results.
+    
+  override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+    if (segue.identifier == "Edit") {
+      let controller = segue.destination as! AddNewEntryViewController
+      var selectedSpecimen: Specimen!
+      let indexPath = tableView.indexPathForSelectedRow
+        
+      if searchController.isActive {
+        let searchResultsController =
+          searchController.searchResultsController as! UITableViewController
+        let indexPathSearch = searchResultsController.tableView.indexPathForSelectedRow
+        selectedSpecimen = searchResults[indexPathSearch!.row]
+      } else {
+        selectedSpecimen = specimens[indexPath!.row]
+      }
+      controller.specimen = selectedSpecimen
+    }
+  }
+
     
   func filterResultsWithSearchString(searchString: String) {
     // The [c] that follows BEGINSWITH indicates a case insensitive search.
@@ -117,7 +137,8 @@ extension LogViewController {
     
     let specimen = searchController.isActive ?
     searchResults[indexPath.row] : specimens[indexPath.row]
-
+    
+    cell.titleLabel.text = specimen.name
     cell.subtitleLabel.text = specimen.category.name
 
     switch specimen.category.name {
