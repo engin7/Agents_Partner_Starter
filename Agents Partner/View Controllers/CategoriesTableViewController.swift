@@ -1,34 +1,5 @@
-/**
- * Copyright (c) 2018 Razeware LLC
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * Notwithstanding the foregoing, you may not use, copy, modify, merge, publish,
- * distribute, sublicense, create a derivative work, and/or sell copies of the
- * Software in any work that is designed, intended, or marketed for pedagogical or
- * instructional purposes related to programming, coding, application development,
- * or information technology.  Permission for such use, copying, modification,
- * merger, publication, distribution, sublicensing, creation of derivative works,
- * or sale is expressly withheld.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 import UIKit
+import RealmSwift
 
 //
 // MARK: - Categories Table View Controller
@@ -37,13 +8,40 @@ class CategoriesTableViewController: UITableViewController {
   //
   // MARK: - Variables And Properties
   //
-  var categories: [Any] = []
-  
+  let realm = try! Realm()  // better to use do-catch, here simplified.
+  lazy var categories: Results<Category> = { self.realm.objects(Category.self) }() // fetch objects
+  var selectedCategory: Category!
+
+  //
+  // MARK: - Helper Methods
+  //
+    
+  private func populateDefaultCategories() {
+      if categories.count == 0 { // database has no Category records
+        try! realm.write() { // add some records to the database.
+          let defaultCategories =
+            ["Birds", "Mammals", "Flora", "Reptiles", "Arachnids" ]
+          
+          for category in defaultCategories { // For each category name, you create a new instance of Category, populate name and add the object to realm
+            let newCategory = Category()
+            newCategory.name = category
+            
+            realm.add(newCategory)
+          }
+        }
+        
+        categories = realm.objects(Category.self) // fetch them'll
+      }
+  }
+
+    
   //
   // MARK: - View Controller
   //
   override func viewDidLoad() {
     super.viewDidLoad()
+    populateDefaultCategories()
+
   }
 }
 
@@ -53,7 +51,8 @@ class CategoriesTableViewController: UITableViewController {
 extension CategoriesTableViewController {
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
-    
+    let category = categories[indexPath.row]
+    cell.textLabel?.text = category.name
     return cell
   }
   
@@ -62,6 +61,11 @@ extension CategoriesTableViewController {
   }
   
   override func tableView(_ tableView: UITableView, willSelectRowAt indexPath: IndexPath) -> IndexPath? {
+    selectedCategory = categories[indexPath.row]
     return indexPath
   }
 }
+
+// It’s nice to see the categories show up in the app, but it’s always reassuring to see the records in the database. You can do this via the Realm Browser.
+// print(Realm.Configuration.defaultConfiguration.fileURL!)
+
