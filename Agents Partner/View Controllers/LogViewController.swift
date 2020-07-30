@@ -16,7 +16,7 @@ class LogViewController: UITableViewController {
   //
   // MARK: - Variables And Properties
   //
-  var searchResults: [Any] = []
+  var searchResults = try! Realm().objects(Specimen.self)
   var searchController: UISearchController!
   var specimens = try! Realm().objects(Specimen.self)
   .sorted(byKeyPath: "name", ascending: true)
@@ -26,8 +26,42 @@ class LogViewController: UITableViewController {
   //
   @IBAction func scopeChanged(sender: Any) {
     
+    let scopeBar = sender as! UISegmentedControl
+    let realm = try! Realm()
+    // to sort the returned results when the user taps a button in the scope bar.
+    switch scopeBar.selectedSegmentIndex {
+    case 1:
+      specimens = realm.objects(Specimen.self)
+        .sorted(byKeyPath: "created", ascending: true)
+    default:
+      specimens = realm.objects(Specimen.self)
+        .sorted(byKeyPath: "name", ascending: true)
+    }
+      
+    tableView.reloadData()
+
+    
   }
   
+    
+  func filterResultsWithSearchString(searchString: String) {
+    // The [c] that follows BEGINSWITH indicates a case insensitive search.
+    let predicate = NSPredicate(format: "name BEGINSWITH [c]%@", searchString)
+    let scopeIndex = searchController.searchBar.selectedScopeButtonIndex // grab a reference to the currently selected scope index from the search bar.
+    let realm = try! Realm()
+      
+    switch scopeIndex {
+    case 0:
+      searchResults = realm.objects(Specimen.self)
+        .filter(predicate).sorted(byKeyPath: "name", ascending: true) // sorth by name
+    case 1:
+      searchResults = realm.objects(Specimen.self).filter(predicate)
+        .sorted(byKeyPath: "created", ascending: true) // sorth by date
+    default:
+      searchResults = realm.objects(Specimen.self).filter(predicate) // If none of the buttons are selected, don’t sort the results, take them in the order they’re returned from the database.
+    }
+  }
+
   
   //
   // MARK: - View Controller
@@ -54,6 +88,8 @@ class LogViewController: UITableViewController {
   }
 }
 
+
+
 //
 // MARK: - Search Bar Delegate
 //
@@ -65,6 +101,9 @@ extension LogViewController:  UISearchBarDelegate {
 //
 extension LogViewController: UISearchResultsUpdating {
   func updateSearchResults(for searchController: UISearchController) {
+    // apply filtering
+    let searchString = searchController.searchBar.text!
+    filterResultsWithSearchString(searchString: searchString)
     let searchResultsController = searchController.searchResultsController as! UITableViewController
     searchResultsController.tableView.reloadData()
   }
@@ -76,9 +115,9 @@ extension LogViewController {
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = self.tableView.dequeueReusableCell(withIdentifier: "LogCell") as! LogCell
     
-    let specimen = specimens[indexPath.row]
+    let specimen = searchController.isActive ?
+    searchResults[indexPath.row] : specimens[indexPath.row]
 
-    cell.titleLabel.text = specimen.name
     cell.subtitleLabel.text = specimen.category.name
 
     switch specimen.category.name {
